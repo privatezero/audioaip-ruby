@@ -44,7 +44,7 @@ end.parse!
 Targetlist = Array.new
 Rejectedlist = Array.new
 
-def packagehome(inputfile)
+def assignpaths(inputfile)
 	packagename = File.basename(inputfile, '.*')
 	packagelocation = File.dirname(inputfile)
 	package = "#{packagelocation}/#{packagename}"
@@ -52,7 +52,7 @@ def packagehome(inputfile)
 	logdir = "#{package}/data/logs"
 	metadatadir = "#{package}/data/metadata"
 	objectsdir = "#{package}/data/objects"
-	return package, datadir, logdir, metadatadir, objectsdir
+	return package, datadir, logdir, metadatadir, objectsdir, packagelocation, packagename
 end
 
 def validtarget?(inputfile)
@@ -62,7 +62,7 @@ def validtarget?(inputfile)
 	elsif ! File.exist?(inputfile)
 		puts "Input #{inputfile} not found. Skipping."
 		Rejectedlist << inputfile
-	elsif Dir.exist?(packagehome(inputfile)[0])
+	elsif Dir.exist?(assignpaths(inputfile)[0])
 		puts "Directory already exists for target package"
 		Rejectedlist << inputfile	
 	else
@@ -71,9 +71,8 @@ def validtarget?(inputfile)
 end
 
 def createstructure(inputfile)
-	buildpackage = packagehome(inputfile)
-
-	buildpackage.each do |make|
+	buildpackage = assignpaths(inputfile)
+	buildpackage[0..4].each do |make|
 		Dir.mkdir(make)
 	end
 	bag = BagIt::Bag.new(buildpackage[0])
@@ -84,5 +83,5 @@ ARGV.each do|file_input|
 end
 
 Targetlist.each do |aiptarget|
-	createstructure aiptarget 
+	createstructure aiptarget
 end
