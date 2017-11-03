@@ -42,17 +42,49 @@ OptionParser.new do |opts|
 end.parse!
 
 Targetlist = Array.new
+Rejectedlist = Array.new
+
+def packagehome(inputfile)
+	packagePaths = Array.new
+	packagename = File.basename(inputfile, '.*')
+	packagelocation = File.dirname(inputfile)
+	package = "#{packagelocation}/#{packagename}"
+	logdir = "#{package}/logs"
+	metadatadir = "#{package}/metadata"
+	objectsdir = "#{package}/objects"
+	packagePaths << package
+	packagePaths << logdir
+	packagePaths << metadatadir
+	packagePaths << objectsdir
+end
 
 def validtarget?(inputfile)
 	if File.extname(inputfile) != '.wav'
 		puts "Input #{inputfile} is not a WAV file. Skipping."
+		Rejectedlist << inputfile
 	elsif ! File.exist?(inputfile)
 		puts "Input #{inputfile} not found. Skipping."
+		Rejectedlist << inputfile
+	elsif Dir.exist?(packagehome(inputfile)[0])
+		puts "Directory already exists for target package"
+		Rejectedlist << inputfile	
 	else
 		Targetlist << inputfile
 	end
 end
 
+def createstructure(inputfile)
+	buildpackage = packagehome(inputfile)
+	buildpackage.each do |make|
+		Dir.mkdir(make)
+	end
+end
+
+
 ARGV.each do|file_input|
 	validtarget? file_input
+end
+
+Targetlist.each do |aiptarget|
+	createstructure aiptarget
 end
