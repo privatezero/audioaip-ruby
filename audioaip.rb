@@ -40,3 +40,19 @@ OptionParser.new do |opts|
     puts opts
   end
 end.parse!
+
+Targetlist = Array.new
+
+def validtarget?(inputfile)
+	if File.extname(inputfile) != '.wav'
+		puts "Input #{inputfile} is not a WAV file. Skipping."
+	elsif ! File.exist?(inputfile)
+		puts "Input #{inputfile} not found. Skipping."
+	else
+		Targetlist << inputfile
+	end
+end
+
+ARGV.each do|file_input|
+	validtarget? file_input
+end
