@@ -45,17 +45,14 @@ Targetlist = Array.new
 Rejectedlist = Array.new
 
 def packagehome(inputfile)
-	packagePaths = Array.new
 	packagename = File.basename(inputfile, '.*')
 	packagelocation = File.dirname(inputfile)
 	package = "#{packagelocation}/#{packagename}"
-	logdir = "#{package}/logs"
-	metadatadir = "#{package}/metadata"
-	objectsdir = "#{package}/objects"
-	packagePaths << package
-	packagePaths << logdir
-	packagePaths << metadatadir
-	packagePaths << objectsdir
+	datadir = "#{package}/data"
+	logdir = "#{package}/data/logs"
+	metadatadir = "#{package}/data/metadata"
+	objectsdir = "#{package}/data/objects"
+	return package, datadir, logdir, metadatadir, objectsdir
 end
 
 def validtarget?(inputfile)
@@ -75,16 +72,17 @@ end
 
 def createstructure(inputfile)
 	buildpackage = packagehome(inputfile)
+
 	buildpackage.each do |make|
 		Dir.mkdir(make)
 	end
+	bag = BagIt::Bag.new(buildpackage[0])
 end
-
 
 ARGV.each do|file_input|
 	validtarget? file_input
 end
 
 Targetlist.each do |aiptarget|
-	createstructure aiptarget
+	createstructure aiptarget 
 end
