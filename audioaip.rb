@@ -53,7 +53,8 @@ def assignpaths(inputfile)
 	logdir = "#{package}/data/logs"
 	metadatadir = "#{package}/data/metadata"
 	objectsdir = "#{package}/data/objects"
-	return package, datadir, logdir, metadatadir, objectsdir, packagelocation, packagename
+	workingdir = "#{packagelocation}/#{packagename}_working_directory"
+	return package, datadir, logdir, metadatadir, objectsdir, workingdir, packagelocation, packagename
 end
 
 def validtarget?(inputfile)
@@ -73,7 +74,7 @@ end
 
 def createstructure(inputfile)
 	buildpackage = assignpaths(inputfile)
-	buildpackage[0..4].each do |make|
+	buildpackage[0..5].each do |make|
 		Dir.mkdir(make)
 	end
 	bag = BagIt::Bag.new(buildpackage[0])
@@ -81,9 +82,10 @@ end
 
 def makederivatives(inputfile)
 	paths = assignpaths(inputfile)
-	basename = paths[5]
-	mp3name = "#{paths[6]}.mp3"
+	basename = paths[6]
+	mp3name = "#{paths[7]}.mp3"
 	ffmpegcommand = "ffmpeg -i #{inputfile} -codec:a libmp3lame -write_id3v1 1 -id3v2_version 3 -dither_method triangular -af dynaudnorm=g=81 -metadata Normalization='ffmpeg dynaudnorm=g=81' -qscale:a 2 '#{basename}/#{mp3name}'"
+	
 	system(ffmpegcommand)
 end
 
