@@ -78,10 +78,21 @@ def createstructure(inputfile)
 	bag = BagIt::Bag.new(buildpackage[0])
 end
 
+def makederivatives(inputfile)
+	paths = assignpaths(inputfile)
+	basename = paths[5]
+	mp3name = "#{paths[6]}.mp3"
+	ffmpegcommand = "ffmpeg -i #{inputfile} -codec:a libmp3lame -write_id3v1 1 -id3v2_version 3 -dither_method triangular -af dynaudnorm=g=81 -metadata Normalization='ffmpeg dynaudnorm=g=81' -qscale:a 2 '#{basename}/#{mp3name}'"
+	system(ffmpegcommand)
+end
+
+
+
 ARGV.each do|file_input|
 	validtarget? file_input
 end
 
 Targetlist.each do |aiptarget|
 	createstructure aiptarget
+	makederivatives aiptarget
 end
