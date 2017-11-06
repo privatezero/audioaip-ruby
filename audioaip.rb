@@ -84,12 +84,16 @@ def makederivatives(inputfile)
 	paths = assignpaths(inputfile)
 	packagecontents = Array.new
 	basename = "#{paths[5]}/#{paths[7]}"
-	ffmpegcommand = "ffmpeg -i '#{inputfile}' -codec:a libmp3lame -write_id3v1 1 -id3v2_version 3 -dither_method triangular -af dynaudnorm=g=81 -metadata Normalization='ffmpeg dynaudnorm=g=81' -qscale:a 2 '#{basename}.mp3'"
-	mediainfocommand = "mediainfo '#{inputfile}' > '#{basename}.txt' && mediainfo --output=XML '#{inputfile}' > '#{basename}.xml'"
+	mp3file = "#{basename}.mp3"
+	txtfile = "#{basename}.txt"
+	xmlfile = "#{basename}.xml"
+	md5file = "#{basename}.md5"
+	ffmpegcommand = "ffmpeg -i '#{inputfile}' -codec:a libmp3lame -write_id3v1 1 -id3v2_version 3 -dither_method triangular -af dynaudnorm=g=81 -metadata Normalization='ffmpeg dynaudnorm=g=81' -qscale:a 2 '#{mp3file}'"
+	mediainfocommand = "mediainfo '#{inputfile}' > '#{basename}.txt' && mediainfo --output=XML '#{inputfile}' > '#{xmlfile}'"
 	packagecontents << "#{inputfile}"
-	packagecontents << "#{basename}.mp3"
-	packagecontents << "#{basename}.txt"
-	packagecontents << "#{basename}.xml"
+	packagecontents << "#{mp3file}"
+	packagecontents << "#{txtfile}"
+	packagecontents << "#{xmlfile}"
 	system(mediainfocommand)
 	system(ffmpegcommand)
 
@@ -98,7 +102,7 @@ def makederivatives(inputfile)
 		md5 = Digest::MD5.file hashtarget
 		hashmanifest << "#{md5},#{File.basename(hashtarget)}"
 	end
-	open("#{basename}.md5", 'w') do |f|
+	open("#{md5file}", 'w') do |f|
 		f.puts hashmanifest
 	end
 end
