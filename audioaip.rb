@@ -30,8 +30,8 @@ OptionParser.new do |opts|
   opts.on("-e", "--edit", "Edit Configuration") do |e|
     options[:edit] = 'edit'
   end
-  opts.on("-p", "--photo", "Photo Mode") do |p|
-    options[:photo] = 'photo'
+  opts.on("-d", "--directory", "Directory Mode") do |d|
+    options[:directory] = 'directory'
   end
   opts.on("-h", "--help", "Help") do
     puts opts
@@ -80,30 +80,52 @@ class Makeaip
   end
 
   def makederivatives(inputfile)
-    packagecontents = Array.new
-    basename = "#{@workingdir}/#{@packagename}"
-    mp3file = "#{basename}.mp3"
-    txtfile = "#{basename}.txt"
-    xmlfile = "#{basename}.xml"
-    md5file = "#{basename}.md5"
-    ffmpegcommand = "ffmpeg -i '#{inputfile}' -codec:a libmp3lame -write_id3v1 1 -id3v2_version 3 -dither_method triangular -af dynaudnorm=g=81 -metadata Normalization='ffmpeg dynaudnorm=g=81' -qscale:a 2 '#{mp3file}'"
-    mediainfocommand = "mediainfo '#{inputfile}' > '#{basename}.txt' && mediainfo --output=XML '#{inputfile}' > '#{xmlfile}'"
-    packagecontents << "#{inputfile}"
-    packagecontents << "#{mp3file}"
-    packagecontents << "#{txtfile}"
-    packagecontents << "#{xmlfile}"
+    @packagecontents = Array.new
+    @mp3file = "#{@workingdir}/#{@packagename}.mp3"
+    @txtfile = "#{@workingdir}/#{@packagename}.txt"
+    @xmlfile = "#{@workingdir}/#{@packagename}.xml"
+    @md5file = "#{@workingdir}/#{@packagename}.md5"
+    ffmpegcommand = "ffmpeg -i '#{inputfile}' -codec:a libmp3lame -write_id3v1 1 -id3v2_version 3 -dither_method triangular -af dynaudnorm=g=81 -metadata Normalization='ffmpeg dynaudnorm=g=81' -qscale:a 2 '#{@mp3file}'"
+    mediainfocommand = "mediainfo '#{inputfile}' > '#{@txtfile}' && mediainfo --output=XML '#{inputfile}' > '#{@xmlfile}'"
+    @packagecontents << inputfile
+    @packagecontents << @mp3file
+    @packagecontents << @txtfile
+    @packagecontents << @xmlfile
     system(mediainfocommand)
     system(ffmpegcommand)
 
     hashmanifest = Array.new
-    packagecontents.each do |hashtarget|
+    @packagecontents.each do |hashtarget|
       md5 = Digest::MD5.file hashtarget
       hashmanifest << "#{md5},#{File.basename(hashtarget)}"
     end
-    open("#{md5file}", 'w') do |f|
+    open("#{@md5file}", 'w') do |f|
       f.puts hashmanifest
     end
+    @packagecontents << @md5file
   end
+
+  def movecontents(inputfile)
+    masterfile = File.basename(inputfile)
+    bag = BagIt::Bag.new(@package)
+    bag.add_file("objects/#{masterfile}", inputfile)
+    bag.add_file("objects/access/#{@packagename}.mp3", @mp3file)
+    bag.add_file("logs/filemeta/#{@packagename}.txt", @txtfile)
+    bag.add_file("logs/filemeta/#{@packagename}.xml", @xmlfile)
+    bag.add_file("metadata/#{@packagename}.md5", @md5file)
+    bag.manifest!
+  end
+
+
+  def confirmpackage
+    @packagecontents.each do |original_file|
+      md5 = Digest::MD5.file(original_file)
+      filename = File.basename(original_file)
+      puts md5
+      puts filename
+    end
+  end
+
 end
 
 ARGV.each do|file_input|
@@ -112,7 +134,9 @@ ARGV.each do|file_input|
   if exiterror.nil?
     finalout.assignpaths(file_input)
     finalout.createstructure
-    finalout.makederivatives file_input
+    finalout.makederivatives(file_input)
+    finalout.movecontents(file_input)
+    finalout.confirmpackage
   else
     puts exiterror
   end
