@@ -5,6 +5,7 @@ require 'yaml'
 require 'optparse'
 require 'bagit'
 require 'digest'
+require 'fileutils'
 #Enter Location of Configuration File between the single quotes In this section!!
 ########
 configuration_file = '' 
@@ -45,6 +46,15 @@ end.parse!
 Targetlist = Array.new
 Rejectedlist = Array.new
 
+# Methods for colored text output
+def red(input)
+  puts "\e[31m#{input}\e[0m"
+end
+
+def green(input)
+  puts "\e[36m#{input}\e[0m"
+end
+
 class Makeaip
   def assignpaths(inputfile)
     @datadir = "#{@package}/data"
@@ -64,12 +74,13 @@ class Makeaip
     elsif ! File.exist?(inputfile)
       errormessage = "Input #{inputfile} not found. Skipping."
     elsif Dir.exist?(@package)
-      errormessage = "Directory already exists for target package"
+      errormessage = "Directory already exists for target package #{inputfile}"
     end
     return errormessage
   end
 
   def createstructure
+    green("Creating Package Structure")
     Dir.mkdir(@package)
     Dir.mkdir(@datadir)
     Dir.mkdir(@logdir)
@@ -80,6 +91,7 @@ class Makeaip
   end
 
   def makederivatives(inputfile)
+    green("Generating Package Contents")
     @packagecontents = Array.new
     @mp3file = "#{@workingdir}/#{@packagename}.mp3"
     @txtfile = "#{@workingdir}/#{@packagename}.txt"
@@ -106,6 +118,7 @@ class Makeaip
   end
 
   def movecontents(inputfile)
+    green("Adding Files to Package")
     masterfile = File.basename(inputfile)
     bag = BagIt::Bag.new(@package)
     bag.add_file("objects/#{masterfile}", inputfile)
@@ -116,14 +129,26 @@ class Makeaip
     bag.manifest!
   end
 
-
   def confirmpackage
+    green("Verifying Package Integrity")
+    bagmanifest = Array.new
+    originmanifest = Array.new
     @packagecontents.each do |original_file|
       md5 = Digest::MD5.file(original_file)
       filename = File.basename(original_file)
-      puts md5
-      puts filename
+      originmanifest << "#{md5} #{filename}"
     end
+    baghash = File.readlines("#{@package}/manifest-md5.txt")
+    baghash.each do |manifestline|
+      manifestbase = File.basename(manifestline.split(" ")[1])
+      manifesthash = File.basename(manifestline.split(" ")[0])
+      bagmanifest << "#{manifesthash} #{manifestbase}"
+    end
+    hashcomparison = (originmanifest - bagmanifest)
+  end
+
+  def cleanup
+    FileUtils.rm_r(@workingdir)
   end
 
 end
@@ -136,8 +161,15 @@ ARGV.each do|file_input|
     finalout.createstructure
     finalout.makederivatives(file_input)
     finalout.movecontents(file_input)
-    finalout.confirmpackage
+    validation = finalout.confirmpackage
+    if validation.empty?
+      green("Package Contents Confirmed")
+      finalout.cleanup
+    else
+      red("Warning: Irregulatities found in package for #{file_input}")
+      exit
+    end
   else
-    puts exiterror
+    red(exiterror)
   end
 end
